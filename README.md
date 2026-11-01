@@ -11,7 +11,7 @@
 
 **Shaders Wallpaper** es una aplicación nativa para Windows creada en C# que transforma tu escritorio en un paisaje vivo de Minecraft con shaders a **60 FPS / 4K**. Cambia automáticamente según la hora real del día y cuenta con un menú interactivo idéntico a la pantalla de título de **Minecraft Java Edition** con sonidos oficiales.
 
-Desarrollado de forma nativa e independiente por **Juan Pablo Bustos** (sin necesidad de Lively Wallpaper ni Wallpaper Engine).
+Desarrollado de forma nativa e independiente por **Jpsb3** (sin necesidad de Lively Wallpaper ni Wallpaper Engine).
 
 ---
 
@@ -87,5 +87,5 @@ En resumen: puedes usarlo, estudiarlo, modificarlo y compartirlo, pero cualquier
 
 ---
 
-**Autor:** [Juan Pablo Bustos](https://github.com/Jpsb3)  
+**Autor:** [Jpsb3](https://github.com/Jpsb3)  
 *¡Si te gustó este proyecto, dale una ⭐ estrella en GitHub!*
