@@ -1,0 +1,13 @@
+{
+  // Carpeta con tu index.html (relativa a la app)
+  "wallpaperFolder": "wallpaper",
+  "page": "index.html",
+
+  // Cómo pegarse al escritorio: "auto", "worker" o "progman" (solo para pruebas)
+  "attachMode": "auto",
+
+  // Pausar el video cuando no se ve
+  "pauseOnFullscreen": true,
+  "pauseOnMaximized": true,
+  "pauseOnBattery": true
+}

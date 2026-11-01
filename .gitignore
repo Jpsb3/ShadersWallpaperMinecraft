@@ -1,0 +1,22 @@
+# Compilación y binarios
+bin/
+obj/
+*.user
+*.suo
+*.useros
+*.sln.docstates
+.vs/
+
+# Logs
+*.log
+log.txt
+build.log
+
+# Archivos de video pesados (se distribuyen en GitHub Releases, no en el árbol git)
+app/wallpaper/*.mp4
+app/videos/*.mp4
+dist/
+*.zip
+
+# Carpetas de caché de WebView2
+EBWebView/

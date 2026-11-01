@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft Java Edition - Dynamic Shaders Wallpaper</title>
+    <style>
+        @font-face {
+            font-family: 'Minecraft';
+            src: url('Minecraft.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            font-family: 'Minecraft', monospace;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* Contenedor de fondo de video dinámico con aceleración por GPU */
+        #video-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            perspective: 1000px;
+            pointer-events: none;
+        }
+
+        video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: translate3d(0, 0, 0);
+            backface-visibility: hidden;
+            will-change: opacity;
+            transition: opacity 1.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        #vid-1 {
+            opacity: 1;
+            z-index: 2;
+        }
+
+        #vid-2 {
+            opacity: 0;
+            z-index: 1;
+        }
+
+        /* ========================================================
+           BOTÓN FLOTANTE DISCRETO (BOTÓN CUADRADO MINECRAFT JAVA)
+           ======================================================== */
+        #btn-trigger {
+            position: fixed;
+            bottom: 30px;
+            right: 22px;
+            width: 42px;
+            height: 42px;
+            z-index: 999;
+            pointer-events: auto;
+            cursor: pointer;
+            opacity: 0.08; /* Muy sutil en reposo para no estorbar en el escritorio */
+            transition: opacity 0.2s ease, transform 0.15s ease, border-color 0.15s ease;
+            
+            /* Textura y bisel auténtico de botón Minecraft Java */
+            background: #4c4c4c;
+            border: 2px solid #000000;
+            box-shadow: inset 2px 2px 0px #858585, inset -2px -2px 0px #222222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            outline: none;
+            padding: 0;
+            image-rendering: pixelated;
+        }
+
+        /* Al pasar el cursor por encima: se ilumina con borde blanco oficial */
+        #btn-trigger:hover, #btn-trigger.active {
+            opacity: 1;
+            transform: scale(1.08);
+            border-color: #ffffff;
+            box-shadow: inset 2px 2px 0px #ffffff, inset -2px -2px 0px #2a2a2a, 0 0 12px rgba(255, 255, 255, 0.5);
+            background: #5b5b5b;
+        }
+
+        #btn-trigger:active {
+            box-shadow: inset 2px 2px 0px #1a1a1a, inset -2px -2px 0px #707070;
+            transform: scale(0.96) translateY(1px);
+        }
+
+        /* ========================================================
+           VENTANA ESTILO MINECRAFT JAVA EDITION EXACTO
+           ======================================================== */
+        #minecraft-menu {
+            position: fixed;
+            bottom: 84px;
+            right: 22px;
+            width: 330px;
+            background: rgba(18, 18, 22, 0.95);
+            backdrop-filter: blur(14px);
+            border: 2px solid #000000;
+            box-shadow: inset 2px 2px 0px #5a5a5a, inset -2px -2px 0px #1a1a1a, 0 20px 50px rgba(0, 0, 0, 0.95);
+            padding: 16px 14px 10px 14px;
+            color: #ffffff;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            gap: 9px;
+            pointer-events: auto;
+            image-rendering: pixelated;
+            overflow: visible;
+        }
+
+        #minecraft-menu.open {
+            display: flex;
+            animation: mcPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes mcPop {
+            0% { transform: scale(0.95); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Logo Oficial 3D de Minecraft con Cartel Amarillo Splash */
+        .mc-logo-wrapper {
+            position: relative;
+            width: 250px;
+            margin: 2px auto 16px auto;
+            text-align: center;
+            overflow: visible;
+        }
+
+        .mc-logo-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.85));
+            pointer-events: none;
+        }
+
+        /* Cartel amarillo clásico (Splash Text) superpuesto al frente y 100% visible */
+        .mc-splash {
+            position: absolute;
+            right: 5px;
+            bottom: -12px;
+            color: #ffff00;
+            font-family: 'Minecraft', monospace;
+            font-size: 13px;
+            font-weight: bold;
+            transform: rotate(-16deg);
+            text-shadow: 2px 2px 0px #3f3f00, -1px -1px 0px #000000, 1px -1px 0px #000000, -1px 1px 0px #000000, 0 0 10px rgba(255, 255, 0, 0.6);
+            animation: splashBounce 0.85s infinite alternate ease-in-out;
+            pointer-events: auto;
+            cursor: pointer;
+            white-space: nowrap;
+            z-index: 100; /* Asegurado por encima del logo */
+        }
+
+        @keyframes splashBounce {
+            0% { transform: rotate(-16deg) scale(0.95); }
+            100% { transform: rotate(-16deg) scale(1.08); }
+        }
+
+        /* Barra de estado de fase y horario */
+        .mc-phase-bar {
+            background: #14151a;
+            border: 2px solid #282933;
+            padding: 6px 10px;
+            font-size: 9.5px;
+            color: #aaaaaa;
+            text-shadow: 1px 1px 0px #000;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-bottom: 2px;
+        }
+
+        .mc-phase-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mc-phase-info strong {
+            color: #55ff55; /* Verde experiencia */
+        }
+
+        .mc-auto-alert {
+            color: #ffaa00; /* Oro Minecraft */
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Lista de fondos estilo botones oficiales Minecraft Java */
+        .mc-btn-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            max-height: 270px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 4px;
+        }
+
+        .mc-btn-list::-webkit-scrollbar {
+            width: 6px;
+            background: #101115;
+        }
+
+        .mc-btn-list::-webkit-scrollbar-thumb {
+            background: #444552;
+            border: 1px solid #1c1d24;
+        }
+
+        /* ========================================================
+           BOTONES ESTILO MINECRAFT JAVA EDITION EXACTO
+           ======================================================== */
+        .mc-btn {
+            width: 100%;
+            height: 32px;
+            background: #4c4c4c;
+            border: 2px solid #000000;
+            box-shadow: inset 2px 2px 0px #858585, inset -2px -2px 0px #222222;
+            color: #e0e0e0;
+            font-family: 'Minecraft', monospace;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            cursor: pointer;
+            text-shadow: 1px 1px 0px #1a1a1a;
+            outline: none;
+            transition: all 0.1s ease;
+        }
+
+        /* Hover estilo Java: borde blanco y texto en oro brillante */
+        .mc-btn:hover {
+            background: #5b5b5b;
+            border-color: #ffffff;
+            box-shadow: inset 2px 2px 0px #ffffff, inset -2px -2px 0px #2a2a2a;
+            color: #ffffa0;
+        }
+
+        .mc-btn:active {
+            box-shadow: inset 2px 2px 0px #1a1a1a, inset -2px -2px 0px #707070;
+            transform: translateY(1px);
+        }
+
+        .mc-btn.active {
+            background: #25421b;
+            border-color: #55ff55;
+            box-shadow: inset 2px 2px 0px #55ff55, inset -2px -2px 0px #11200c;
+            color: #55ff55;
+            text-shadow: 1px 1px 0px #000;
+        }
+
+        .mc-btn-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mc-badge {
+            font-size: 9px;
+            padding: 2px 5px;
+            background: #22232a;
+            border: 1px solid #3d3e4a;
+            color: #bbbbbb;
+            flex-shrink: 0;
+        }
+
+        .mc-btn.active .mc-badge {
+            background: #11200c;
+            border-color: #55ff55;
+            color: #55ff55;
+            font-weight: bold;
+        }
+
+        /* Fila inferior dividida: [ Cerrar ] y [ 🔄 Auto ] */
+        .mc-footer-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .mc-footer-btn {
+            flex: 1;
+            height: 31px;
+            background: #4c4c4c;
+            border: 2px solid #000000;
+            box-shadow: inset 2px 2px 0px #858585, inset -2px -2px 0px #222222;
+            color: #e0e0e0;
+            font-family: 'Minecraft', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            text-shadow: 1px 1px 0px #111;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            outline: none;
+            transition: all 0.1s ease;
+        }
+
+        .mc-footer-btn:hover {
+            background: #5b5b5b;
+            border-color: #ffffff;
+            box-shadow: inset 2px 2px 0px #ffffff, inset -2px -2px 0px #2a2a2a;
+            color: #ffffa0;
+        }
+
+        .mc-footer-btn:active {
+            box-shadow: inset 2px 2px 0px #1a1a1a, inset -2px -2px 0px #707070;
+            transform: translateY(1px);
+        }
+
+        .mc-footer-btn.btn-reset {
+            color: #ffaa00;
+        }
+
+        /* Pie de página con versión y crédito solicitado por Juan Bustos */
+        .mc-meta-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 8.5px;
+            color: #888899;
+            margin-top: 4px;
+            padding-top: 2px;
+            text-shadow: 1px 1px 0 #000;
+        }
+
+        /* ========================================================
+           TOAST DE AVANCE / LOGRO MINECRAFT (ADVANCEMENT MADE)
+           ======================================================== */
+        #mc-toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            width: 260px;
+            background: #212126;
+            border: 2px solid #5a5a6a;
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.88);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 2000;
+            pointer-events: none;
+            transform: translateY(-80px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            image-rendering: pixelated;
+        }
+
+        #mc-toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .mc-toast-icon {
+            font-size: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mc-toast-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .mc-toast-title {
+            color: #ffff55; /* Amarillo logro */
+            font-size: 11px;
+            font-weight: bold;
+            text-shadow: 1px 1px 0px #3f3f00;
+        }
+
+        .mc-toast-desc {
+            color: #ffffff;
+            font-size: 10px;
+            text-shadow: 1px 1px 0px #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Capas de video dinámico con GPU -->
+    <div id="video-container">
+        <video id="vid-1" autoplay loop muted playsinline disablepictureinpicture></video>
+        <video id="vid-2" loop muted playsinline disablepictureinpicture></video>
+    </div>
+
+    <!-- Toast de Notificación de Logro de Minecraft -->
+    <div id="mc-toast">
+        <div class="mc-toast-icon">🏆</div>
+        <div class="mc-toast-content">
+            <div class="mc-toast-title">¡Avance Realizado!</div>
+            <div id="mc-toast-desc" class="mc-toast-desc">Atardecer Dorado</div>
+        </div>
+    </div>
+
+    <!-- Botón discreto idéntico al botón cuadrado de Minecraft Java Edition -->
+    <button id="btn-trigger" title="Menú Minecraft Shaders">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#e0e0e0" stroke-width="2" stroke-linecap="square">
+            <rect x="3" y="3" width="7" height="7" fill="#888888"/>
+            <rect x="14" y="3" width="7" height="7" fill="#aaaaaa"/>
+            <rect x="3" y="14" width="7" height="7" fill="#666666"/>
+            <rect x="14" y="14" width="7" height="7" fill="#888888"/>
+        </svg>
+    </button>
+
+    <!-- Menú estilo Minecraft Java Edition (Pantallazo Exacto) -->
+    <div id="minecraft-menu">
+        <!-- Logo Oficial 3D de Minecraft con Cartel Amarillo -->
+        <div class="mc-logo-wrapper">
+            <img src="minecraft_logo.png" alt="Minecraft" class="mc-logo-img">
+            <div class="mc-splash" id="mc-splash" title="Haz clic para cambiar de frase">Mabel te amo</div>
+        </div>
+
+        <div class="mc-phase-bar">
+            <div class="mc-phase-info">
+                <div>FASE: <strong id="phase-name">Cargando...</strong> (<span id="phase-hours">--:--</span>)</div>
+                <div id="phase-clock" style="color: #55ff55;">--:--</div>
+            </div>
+            <div id="override-status" class="mc-auto-alert" style="display: none;">
+                ⏳ Auto a las <strong id="next-phase-time" style="color: #ffaa00;">--:--</strong>
+            </div>
+        </div>
+
+        <div class="mc-btn-list" id="mc-btn-list">
+            <!-- Rellenado dinámicamente -->
+        </div>
+
+        <!-- Fila dividida estilo [ Cerrar ] [ 🔄 Auto ] -->
+        <div class="mc-footer-row">
+            <button id="btn-restore" class="mc-footer-btn btn-reset" style="display: none;">
+                🔄 Auto
+            </button>
+            <button id="btn-close" class="mc-footer-btn">
+                Cerrar
+            </button>
+        </div>
+
+        <!-- Crédito oficial solicitado por Juan Bustos -->
+        <div class="mc-meta-footer">
+            <span>Minecraft Shaders 1.21</span>
+            <span>Interfaz creada por Juan Bustos</span>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================
+        // FRASES ALEATORIAS DEL CARTEL AMARILLO (SPLASH TEXT)
+        // ========================================================
+        const SPLASH_PHRASES = [
+            "Mabel te amo",
+            "SafeLean exito total",
+            "Juan PaBLO iNGENIERo",
+            "¡Mabel te amo ❤️!",
+            "¡SafeLean: Éxito Total!",
+            "¡Juan Bustos: Ingeniero!",
+            "¡60 FPS Shaders!",
+            "¡Calidad 4K Extrema!",
+            "¡Mabel ❤️ Juan Bustos!",
+            "¡Modo Shaders Activado!",
+            "¡Bienvenido de nuevo, Juan!",
+            "¡Hecho en Colombia!",
+            "¡Desde Bogotá con amor!",
+            "¡A 2.600 metros!",
+            "¡Ingeniería Industrial!",
+            "¡Ingeniero en proceso!",
+            "¡Tesis en progreso!",
+            "¡Nivel 20 alcanzado!",
+            "¡Usa tu EPP!",
+            "¡Casco puesto, Juan!",
+            "¡Seguridad ante todo!",
+            "¡Cero accidentes!",
+            "¡Pausa activa ya!",
+            "¡HSEQ nivel diamante!",
+            "¡Lean y Kaizen!",
+            "¡Mejora continua!",
+            "¡MotoSafe en camino!",
+            "¡SafeLean 2.0!",
+            "¡Hecho en C#!",
+            "¡Ahora sin Lively!",
+            "¡Código abierto!",
+            "¡Push a main!",
+            "¿Bug? ¡Es una feature!",
+            "¡Juan Pablo dev!",
+            "¡Más café, más código!",
+            "¡Tinto y shaders!",
+            "¡Crafteado por Juan!",
+            "¡Minando ideas!",
+            "¡Sin creepers aquí!",
+            "¡Juan + Mabel = ❤️!",
+            "¡Mabel, mi diamante!",
+            "¡Team Mabel y Juan!",
+            "¡Dale una estrella!",
+            "¡Gracias por descargar!"
+        ];
+
+        function randomizeSplash() {
+            const splashEl = document.getElementById('mc-splash');
+            const randomPhrase = SPLASH_PHRASES[Math.floor(Math.random() * SPLASH_PHRASES.length)];
+            splashEl.textContent = randomPhrase;
+        }
+
+        // ========================================================
+        // REPRODUCTOR DE SONIDOS ORIGINALES MINECRAFT
+        // ========================================================
+        const audioFiles = {
+            click: 'audio/click.ogg',
+            toastIn: 'audio/toast_in.ogg',
+            toastOut: 'audio/toast_out.ogg',
+            challenge: 'audio/challenge_complete.ogg',
+            levelup: 'audio/levelup.ogg',
+            orb: 'audio/orb.ogg',
+            anvil: 'audio/anvil_use.ogg'
+        };
+
+        const AUDIO_CACHE = {};
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        // Cargar buffers en memoria RAM para latencia instantánea
+        for (const [key, path] of Object.entries(audioFiles)) {
+            fetch(path)
+                .then(res => res.arrayBuffer())
+                .then(buf => {
+                    const ctx = getAudioContext();
+                    return ctx.decodeAudioData(buf);
+                })
+                .then(decoded => {
+                    AUDIO_CACHE[key] = decoded;
+                })
+                .catch(() => {
+                    AUDIO_CACHE[key] = new Audio(path);
+                });
+        }
+
+        function playSound(name) {
+            try {
+                const ctx = getAudioContext();
+                if (AUDIO_CACHE[name] instanceof AudioBuffer) {
+                    const src = ctx.createBufferSource();
+                    src.buffer = AUDIO_CACHE[name];
+                    src.connect(ctx.destination);
+                    src.start(0);
+                } else if (AUDIO_CACHE[name] instanceof Audio) {
+                    AUDIO_CACHE[name].currentTime = 0;
+                    AUDIO_CACHE[name].play();
+                }
+            } catch (e) {
+                console.log('Error reproduciendo sonido:', e);
+            }
+        }
+
+        // ========================================================
+        // TOAST DE LOGRO (AVANCE REALIZADO)
+        // ========================================================
+        const mcToast = document.getElementById('mc-toast');
+        const mcToastDesc = document.getElementById('mc-toast-desc');
+        let toastTimeout = null;
+
+        function showAdvancementToast(wallpaperName) {
+            clearTimeout(toastTimeout);
+            mcToastDesc.textContent = wallpaperName;
+            playSound('toastIn');
+            mcToast.classList.add('show');
+
+            toastTimeout = setTimeout(() => {
+                playSound('toastOut');
+                mcToast.classList.remove('show');
+            }, 3600);
+        }
+
+        // ========================================================
+        // CATÁLOGO DE WALLPAPERS 4K / 60FPS
+        // ========================================================
+        const WALLPAPERS = [
+            { src: 'minecraft-sunset.mp4', title: 'Atardecer Dorado (Lago)', icon: '🌅', tag: 'Favorito' },
+            { src: 'minecraft-sunrise-mountains.mp4', title: 'Amanecer en el Lago 60FPS', icon: '🌄', tag: 'Amanecer' },
+            { src: 'sakura-forest.mp4', title: 'Bosque Sakura 4K', icon: '🌸', tag: 'Día' },
+            { src: 'minecraft-northern-light.mp4', title: 'Aurora Boreal 4K', icon: '🌌', tag: 'Noche' },
+            { src: 'minecraft-aquarium-4k.mp4', title: 'Arrecife Coralino 4K', icon: '🪸', tag: 'Océano' },
+            { src: 'minecraft-overgrown-cabin.mp4', title: 'Cabaña Encantada 4K', icon: '🌿', tag: 'Día' },
+            { src: 'minecraft-rainy-cabin.mp4', title: 'Cabaña Lluviosa 4K', icon: '🌧️', tag: 'Lluvia' },
+            { src: 'nature-in-minecraft.mp4', title: 'Colinas y Bruma 4K', icon: '🏞️', tag: 'Naturaleza' },
+            { src: 'minecraft-nature.mp4', title: 'Bosque Solar Shaders', icon: '☀️', tag: 'Día' },
+            { src: 'snowy-campfire.mp4', title: 'Campamento Nevado', icon: '❄️', tag: 'Noche' }
+        ];
+
+        // Definición de las 4 fases del ciclo de 24 horas
+        const PHASES = [
+            { id: 'dawn', name: 'Amanecer', hours: '06:00 - 09:00', start: 6.0, end: 9.0, nextTime: '09:00', defaultSrc: 'minecraft-sunrise-mountains.mp4' },
+            { id: 'day', name: 'Día', hours: '09:00 - 17:00', start: 9.0, end: 17.0, nextTime: '17:00', defaultSrc: 'sakura-forest.mp4' },
+            { id: 'sunset', name: 'Atardecer', hours: '17:00 - 19:30', start: 17.0, end: 19.5, nextTime: '19:30', defaultSrc: 'minecraft-sunset.mp4' },
+            { id: 'night', name: 'Noche', hours: '19:30 - 06:00', start: 19.5, end: 24.0, nextTime: '06:00', defaultSrc: 'minecraft-northern-light.mp4' },
+            { id: 'night_early', name: 'Noche', hours: '19:30 - 06:00', start: 0.0, end: 6.0, nextTime: '06:00', defaultSrc: 'minecraft-northern-light.mp4' }
+        ];
+
+        function getCurrentPhase() {
+            const now = new Date();
+            const t = now.getHours() + (now.getMinutes() / 60);
+            for (let p of PHASES) {
+                if (t >= p.start && t < p.end) {
+                    return p;
+                }
+            }
+            return PHASES[3];
+        }
+
+        let vid1 = document.getElementById('vid-1');
+        let vid2 = document.getElementById('vid-2');
+        let currentElement = vid1;
+        let standbyElement = vid2;
+
+        let currentSrc = '';
+        let isTransitioning = false;
+        let manualOverride = false;
+        let activePhaseId = getCurrentPhase().id;
+
+        function switchVideo(targetSrc, showToast = true) {
+            if (currentSrc === targetSrc || isTransitioning) return;
+            isTransitioning = true;
+
+            standbyElement.src = targetSrc;
+            standbyElement.load();
+
+            const onCanPlay = () => {
+                standbyElement.removeEventListener('canplay', onCanPlay);
+                standbyElement.play().then(() => {
+                    requestAnimationFrame(() => {
+                        standbyElement.style.zIndex = '2';
+                        currentElement.style.zIndex = '1';
+                        standbyElement.style.opacity = '1';
+                        currentElement.style.opacity = '0';
+
+                        setTimeout(() => {
+                            currentElement.pause();
+                            currentElement.currentTime = 0;
+
+                            const temp = currentElement;
+                            currentElement = standbyElement;
+                            standbyElement = temp;
+
+                            currentSrc = targetSrc;
+                            isTransitioning = false;
+                            renderMenu();
+
+                            if (showToast) {
+                                const found = WALLPAPERS.find(w => w.src === targetSrc);
+                                if (found) showAdvancementToast(found.title);
+                            }
+                        }, 1350);
+                    });
+                }).catch(() => {
+                    isTransitioning = false;
+                });
+            };
+
+            standbyElement.addEventListener('canplay', onCanPlay);
+        }
+
+        function checkCycle() {
+            const phase = getCurrentPhase();
+            const normActivePhase = (activePhaseId === 'night_early') ? 'night' : activePhaseId;
+            const normNewPhase = (phase.id === 'night_early') ? 'night' : phase.id;
+
+            if (normNewPhase !== normActivePhase) {
+                activePhaseId = phase.id;
+                manualOverride = false;
+                switchVideo(phase.defaultSrc, true);
+            } else if (!manualOverride) {
+                if (currentSrc !== phase.defaultSrc) {
+                    switchVideo(phase.defaultSrc, false);
+                }
+            }
+            renderMenu();
+        }
+
+        // ========================================================
+        // CONTROL DE INTERFAZ MINECRAFT
+        // ========================================================
+        const btnTrigger = document.getElementById('btn-trigger');
+        const mcMenu = document.getElementById('minecraft-menu');
+        const btnClose = document.getElementById('btn-close');
+        const btnRestore = document.getElementById('btn-restore');
+        const mcBtnList = document.getElementById('mc-btn-list');
+        const phaseNameEl = document.getElementById('phase-name');
+        const phaseHoursEl = document.getElementById('phase-hours');
+        const phaseClockEl = document.getElementById('phase-clock');
+        const overrideStatusEl = document.getElementById('override-status');
+        const nextPhaseTimeEl = document.getElementById('next-phase-time');
+        const mcSplashEl = document.getElementById('mc-splash');
+
+        // Al hacer clic en el cartel amarillo, cambia a otra frase con sonido
+        mcSplashEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playSound('orb');
+            randomizeSplash();
+        });
+
+        btnTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playSound('click');
+            const isOpen = mcMenu.classList.contains('open');
+            if (isOpen) {
+                mcMenu.classList.remove('open');
+                btnTrigger.classList.remove('active');
+            } else {
+                randomizeSplash();
+                renderMenu();
+                mcMenu.classList.add('open');
+                btnTrigger.classList.add('active');
+            }
+        });
+
+        btnClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playSound('click');
+            mcMenu.classList.remove('open');
+            btnTrigger.classList.remove('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!mcMenu.contains(e.target) && e.target !== btnTrigger) {
+                if (mcMenu.classList.contains('open')) {
+                    playSound('click');
+                }
+                mcMenu.classList.remove('open');
+                btnTrigger.classList.remove('active');
+            }
+        });
+
+        function renderMenu() {
+            const phase = getCurrentPhase();
+            const now = new Date();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+
+            phaseNameEl.textContent = phase.name;
+            phaseHoursEl.textContent = phase.hours;
+            phaseClockEl.textContent = `${hh}:${mm}`;
+            nextPhaseTimeEl.textContent = phase.nextTime;
+
+            if (manualOverride) {
+                overrideStatusEl.style.display = 'flex';
+                btnRestore.style.display = 'flex';
+            } else {
+                overrideStatusEl.style.display = 'none';
+                btnRestore.style.display = 'none';
+            }
+
+            mcBtnList.innerHTML = '';
+            WALLPAPERS.forEach(wp => {
+                const btn = document.createElement('button');
+                btn.className = 'mc-btn' + (currentSrc === wp.src ? ' active' : '');
+                btn.innerHTML = `
+                    <div class="mc-btn-title">
+                        <span>${wp.icon}</span>
+                        <span>${wp.title}</span>
+                    </div>
+                    <span class="mc-badge">${currentSrc === wp.src ? '✓ ACTIVO' : wp.tag}</span>
+                `;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    playSound('click');
+                    manualOverride = true;
+                    switchVideo(wp.src, true);
+                });
+                mcBtnList.appendChild(btn);
+            });
+        }
+
+        btnRestore.addEventListener('click', (e) => {
+            e.stopPropagation();
+            playSound('challenge');
+            manualOverride = false;
+            const phase = getCurrentPhase();
+            switchVideo(phase.defaultSrc, true);
+        });
+
+        // Inicio
+        const initialPhase = getCurrentPhase();
+        currentSrc = initialPhase.defaultSrc;
+        currentElement.src = currentSrc;
+        currentElement.play().catch(e => console.log('Autoplay:', e));
+        randomizeSplash();
+        renderMenu();
+
+        setInterval(checkCycle, 15000);
+    </script>
+</body>
+</html>
